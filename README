@@ -1,0 +1,69 @@
+This work is based on RPNC-release
+
+安装配置：
+
+Ubuntu14.04
+GNuradio3.7.8 (gr3.7.3以上)
+UHD 003.010.000
+
+
+使用指南：
+1，导入gnuradio库：
+    
+  -- ctrl+alt+T 打开终端，cd到当前文件夹目录下 eg:～/Document/breathing_detector/
+  -- source export-gnuradio-node.sh 
+  -- 终端先留着不要关掉
+
+2 编译
+  
+  在终端依次输入以下命令
+  -- mkdir -p build install
+  -- cd  build
+  -- cmake -DCMAKE_INSTALL_PREFIX=../install ../
+  -- make 
+  -- sudo make install (need password: sdr123 )
+  -- sudo ldconfig 
+  
+  -- 修改一下 export-gnuradio-node.sh 内容，将第二部分的开头
+
+export RPNC_INSTALL_DIR= 压缩包位置/install (eg: export RPNC_INSTALL_DIR=/home/sdr123/Documents/breathing_detector/install)
+正确的压缩包位置可以右键export-gnuradio-node.sh 查看properties，copy其Location 即为正确的压缩包位置写法
+  终端可以关掉
+
+
+3 运行demo
+
+(1)将usrp设备连接上，N210连接时候，需要在电脑屏幕右上角的Ethernet network 选择N210(若用两台B210，则跳过)
+(2)打开终端，输入命令行：sudo -i （需要输入密码： sdr123）
+(3)输入命令行： uhd_find_devices 若两台设备连接成功会有出现两个设备的信息，记一下B210的serial number 和N210的IP地址（实验室的N210应该都在贴有其IP地址,B210的serial number可以在板子中间上看到）
+(4)设置transmitter：
+   --在终端里 cd到解压缩文件夹的example文件夹路径下eg： ～/Document/breathing_detector/example
+   --输入命令  source ../export-gnuradio-node.sh
+   --输入命令 ./test_ofdm_tx_main -f 2.5G --pause 0.055 -N 20 --args='addr=192.168.0.2'/'serial=30AC29E'  (这里的--args后面接的内容，若用N210则是IP地址，若B210则是serial number具体数值根据(3)而定)
+   --运行该脚本后，脚本会在最后显示 Sent 20 packets of 16 symbols in 1.00 seconds ，若不为 1.00 seconds，调整一下--pause 后面的数值 ，此步骤是确认发射方在一秒钟发射20个packet
+   --输入命令行 ./test_ofdm_tx_main -f 2.5G --pause 0.055 --args='addr=192.168.0.2'/'serial=30AC285' -N 1000000 让其开始一直发包
+(5)设置receiver：
+   --打开另一个终端，重复上面(2)操作
+   --输入命令  source ../export-gnuradio-node.sh
+   --在终端里 cd到解压缩文件夹的example文件夹路径下eg： ～/Document/breathing_detector/example
+   --输入命令  ./breathing_detector -f 2.5G ---args='addr=192.168.0.2'/'serial=F5EAF2' (这里的--args后面接的内容，若用N210则是IP地址，若B210则是   serial number具体数值根据(3)而定)
+   --GUI打开后，点击“开始检测呼吸频率”开始运行 (50秒后开始进行频率统计)
+   --退出时，按下‘停止检测’，关掉GUI即可。若直接在终端关掉，下一次运行可能会有bug，copy下面的命令行运行即可：
+     kill -9 $(ps auxf | grep "breathing_dete*" | awk '{print $2}')
+
+4 可能遇到的问题和解决方案
+
+(1)N210 网线连接后识别不了
+   --正常情况下，连接后 ，点击电脑右上角上面的Ethernet Network上可以勾选N210，若没有，则在Ethernet Network下面点击edit connection，在弹窗列表中双击N210，在弹出窗口中再点击IPv4 setting，把address改为 192.168.0.1 || 255.255.255.0 ||192.168.0.0 保存即可。
+   --若多次尝试，仍未识别，可用网线转USB插头
+   --若没有，则用B210取代,在收发端的命令行用serial number区别开来。
+
+(2)接收方未收到包
+   --正常情况下，在接收方的终端里是会实时回传接收的包，若没有可能是B210的天线接错，应该将天线接到对应灯亮的位置（绿灯为接收状态，红灯为发射状态）
+   若还未能接收，则在第四步 运行demo的(4)设置transmitter中，在命令行./ofdm_test_tx_main -f 2.5G --pause 0.055 -N 20 --args='addr=192.168.0.2'/'serial=F5EAF2' 后面加上 --tx-amplitude=1 
+
+
+
+
+
+

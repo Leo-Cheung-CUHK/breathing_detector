@@ -1,0 +1,7 @@
+*.pyc
+*.pyo
+install/*
+build/*
+*~
+*.dat*
+tags

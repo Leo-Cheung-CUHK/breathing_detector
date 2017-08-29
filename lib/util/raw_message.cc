@@ -1,0 +1,99 @@
+/* -*- c++ -*- */
+/*
+ * Copyright 2005 Free Software Foundation, Inc.
+ *
+ * This file is part of GNU Radio
+ *
+ * GNU Radio is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3, or (at your option)
+ * any later version.
+ *
+ * GNU Radio is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with GNU Radio; see the file COPYING.  If not, write to
+ * the Free Software Foundation, Inc., 51 Franklin Street,
+ * Boston, MA 02110-1301, USA.
+ */
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+#include <raw_message.h>
+#include <assert.h>
+#include <string.h>
+#include <stdio.h>
+#include <sys/time.h>
+
+static long s_ncurrently_allocated = 0;
+
+raw_message_sptr
+raw_make_message (long type, double arg1, double arg2, size_t length)
+{
+  return raw_message_sptr (new raw_message (type, arg1, arg2, length));
+}
+
+raw_message_sptr
+raw_make_message_from_string(const std::string s, long type, double arg1, double arg2)
+{
+  raw_message_sptr m = raw_make_message(type, arg1, arg2, s.size());
+  memcpy(m->msg(), s.data(), s.size());
+  return m;
+}
+
+raw_message::raw_message (long type, double arg1, double arg2, size_t length)
+  : d_type(type), d_arg1(arg1), d_arg2(arg2)
+{
+  d_timestamp_valid=false;
+  d_decode_time_valid = false;
+  d_user_type = 0;
+
+  if (length == 0)
+    d_buf_start = d_msg_start = d_msg_end = d_buf_end = 0;
+  else {
+    d_buf_start = new unsigned char [length];
+    d_msg_start = d_buf_start;
+    d_msg_end = d_buf_end = d_buf_start + length;
+  }
+  s_ncurrently_allocated++;
+}
+
+raw_message::~raw_message ()
+{
+  assert (d_next == 0);
+  delete [] d_buf_start;
+  d_msg_start = d_msg_end = d_buf_end = 0;
+  s_ncurrently_allocated--;
+}
+
+std::string
+raw_message::to_string() const
+{
+  return std::string((char *)d_msg_start, length());
+}
+
+long
+raw_message_ncurrently_allocated ()
+{
+  return s_ncurrently_allocated;
+}
+
+
+double raw_message::get_decode_time(void)
+{
+  struct timeval tv;
+  //if(d_decode_time_secs == 0) {
+  //  return 0;
+  //}
+
+  gettimeofday(&tv, NULL);
+  double cur_time = tv.tv_sec + tv.tv_usec*1.0/1e6;
+
+  return (cur_time - (d_decode_time_secs+d_decode_time_frac));
+  //return d_decode_time_secs+d_decode_time_frac;
+
+}
